@@ -98,6 +98,17 @@ async function main() {
     );
     console.log(`  -> ${hello.stdout.trim()}`);
 
+    // Uses only the bundled OpenAI tokenizer, so it needs no network.
+    console.log("smoke: dhb tokens -m gpt-4o --json");
+    const tokens = run(binPath, ["tokens", "-m", "gpt-4o", "--json"], {
+      cwd: consumerDir,
+      input: "Hello world",
+    });
+    expect(tokens.status === 0, `dhb tokens exited ${tokens.status}:\n${tokens.stderr}`);
+    const tokenResult = JSON.parse(tokens.stdout).results?.[0];
+    expect(tokenResult?.tokens === 2, `unexpected tokens output: ${JSON.stringify(tokens.stdout)}`);
+    console.log(`  -> gpt-4o: ${tokenResult.tokens} tokens`);
+
     console.log("\nsmoke: PASS");
   } finally {
     await rm(workDir, { recursive: true, force: true });
