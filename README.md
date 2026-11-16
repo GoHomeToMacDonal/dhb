@@ -111,8 +111,11 @@ a request is billed. GPT models use ChatML framing; Hub models render their own
 Hub tokenizers are downloaded on first use into the standard Hugging Face cache
 (`$HF_HUB_CACHE`, else `$HF_HOME/hub`, else `~/.cache/huggingface/hub`) and
 reused offline afterwards. Revisions are pinned to commit hashes, so counts are
-reproducible. Set `HF_ENDPOINT` to use a mirror. Download notices go to stderr,
-so `--json` output on stdout stays clean.
+reproducible. Set `HF_ENDPOINT` to use a mirror (for example
+`HF_ENDPOINT=https://hf-mirror.com`). Downloads use a plain `GET` on the
+`resolve` URL, so any mirror or proxy that serves files works, and every file is
+checked against a pinned SHA-256 before it is cached. Download notices go to
+stderr, so `--json` output on stdout stays clean.
 
 ## Scripts
 
