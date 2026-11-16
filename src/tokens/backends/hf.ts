@@ -1,12 +1,13 @@
-import { readFile } from "node:fs/promises";
-import { downloadFileToCacheDir } from "@huggingface/hub";
 import { Template } from "@huggingface/jinja";
 import { Tokenizer } from "@huggingface/tokenizers";
 import type { TokenInput } from "../input.ts";
+import type { PinnedFile } from "../registry.ts";
+import { readHubJsonFile } from "./hub-cache.ts";
 
 export interface HfTokenizerSpec {
   repo: string;
   revision: string;
+  files: { tokenizer: PinnedFile; config: PinnedFile };
 }
 
 export interface HfCountOptions {
@@ -28,10 +29,10 @@ export async function countHf(
   input: TokenInput,
   options: HfCountOptions = {},
 ): Promise<number> {
-  // Sequential on purpose: each download temporarily swaps `console.debug`,
-  // and overlapping swaps could restore the wrong function.
-  const tokenizerJson = await readHubJson(spec, "tokenizer.json", options.log);
-  const tokenizerConfig = await readHubJson(spec, "tokenizer_config.json", options.log);
+  const [tokenizerJson, tokenizerConfig] = await Promise.all([
+    readHubJson(spec, "tokenizer.json", spec.files.tokenizer, options.log),
+    readHubJson(spec, "tokenizer_config.json", spec.files.config, options.log),
+  ]);
   const tokenizer = new Tokenizer(tokenizerJson, tokenizerConfig);
 
   const text =
@@ -75,47 +76,17 @@ function tokenContent(value: unknown): string | undefined {
 }
 
 /**
- * Resolve a file from the standard Hugging Face hub cache, downloading it on
- * first use. Because `revision` is a commit hash, a cached snapshot is
- * returned without contacting the Hub. `HF_ENDPOINT` selects a mirror.
+ * Read a pinned tokenizer file from the standard Hugging Face hub cache,
+ * downloading it on first use. `HF_ENDPOINT` selects a mirror.
  */
-async function readHubJson(
+function readHubJson(
   spec: HfTokenizerSpec,
   path: string,
+  file: PinnedFile,
   log: ((text: string) => void) | undefined,
 ): Promise<Record<string, unknown>> {
-  const hubUrl = process.env.HF_ENDPOINT?.trim();
-  const notice = `dhb tokens: downloading ${spec.repo}/${path} into the Hugging Face cache\n`;
-  const file = await withDownloadNotices(
-    () => log?.(notice),
-    () =>
-      downloadFileToCacheDir({
-        repo: spec.repo,
-        path,
-        revision: spec.revision,
-        ...(hubUrl ? { hubUrl } : {}),
-      }),
+  return readHubJsonFile(
+    { repo: spec.repo, revision: spec.revision, file: { path, ...file } },
+    (url) => log?.(`dhb tokens: downloading ${url}\n`),
   );
-  const data: unknown = JSON.parse(await readFile(file, "utf8"));
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
-    throw new Error(`${spec.repo}/${path} is not a JSON object`);
-  }
-  return data as Record<string, unknown>;
-}
-
-/**
- * `@huggingface/hub` announces downloads through `console.debug`, which Node
- * writes to stdout and would corrupt `--json` output. While the download
- * runs, replace those messages with our own notice on the caller's sink.
- */
-async function withDownloadNotices<T>(onDownload: () => void, run: () => Promise<T>): Promise<T> {
-  const original = console.debug;
-  console.debug = () => {
-    onDownload();
-  };
-  try {
-    return await run();
-  } finally {
-    console.debug = original;
-  }
 }
