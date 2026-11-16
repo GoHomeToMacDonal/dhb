@@ -11,7 +11,9 @@
  *   `~/.cache/huggingface/hub`).
  *
  * Hub revisions are pinned to commit hashes so counts are reproducible and a
- * cached snapshot is reused without any network request.
+ * cached snapshot is reused without any network request. Each file's SHA-256
+ * is pinned too and verified after download, so a mirror cannot serve
+ * different content.
  */
 
 /** OpenAI model ids accepted by the `openai` backend. */
@@ -31,9 +33,20 @@ export const OPENAI_MODEL_IDS = [
 
 export type OpenAiModelId = (typeof OPENAI_MODEL_IDS)[number];
 
+/** A pinned Hub file: cache blob id (the Hub ETag) and content SHA-256. */
+export interface PinnedFile {
+  etag: string;
+  sha256: string;
+}
+
 export type TokenizerSpec =
   | { kind: "openai"; model: OpenAiModelId; encoding: "o200k_base" }
-  | { kind: "hf"; repo: string; revision: string };
+  | {
+      kind: "hf";
+      repo: string;
+      revision: string;
+      files: { tokenizer: PinnedFile; config: PinnedFile };
+    };
 
 export interface ModelEntry {
   /** Id the user passes to `--model`. */
@@ -62,6 +75,16 @@ const HF_MODELS: ModelEntry[] = [
       kind: "hf",
       repo: "deepseek-ai/DeepSeek-V3",
       revision: "e815299b0bcbac849fa540c768ef21845365c9eb",
+      files: {
+        tokenizer: {
+          etag: "51083c600ec00c7f57ae1af7fef7108c52ce7376",
+          sha256: "621ac2e32d0dba658404412318818aaa8ce8cda492e59830109d8da6b517fb41",
+        },
+        config: {
+          etag: "3ef38058ece03201b9af6baf99b28f16a020ad64",
+          sha256: "637bcd1a08cf7c772ce6a383196b22930921c79c3c73223c5afc0c7f41545546",
+        },
+      },
     },
     isDefault: true,
   },
@@ -72,6 +95,16 @@ const HF_MODELS: ModelEntry[] = [
       kind: "hf",
       repo: "deepseek-ai/DeepSeek-R1",
       revision: "56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad",
+      files: {
+        tokenizer: {
+          etag: "d81c3a6e2093a07ae6fa596d9b154f6669aafafd",
+          sha256: "ecb6f9fc369894346f0511f4074ca75cee5cd5f3b06d02f1ba35fcd39f8e121d",
+        },
+        config: {
+          etag: "d87fcc88d8d23b1d83c2ef0cc966fbf07da1f239",
+          sha256: "99e80c96269ca4430f1e67f67b5766cb096cbac96fed7a7c611c6ee088b3a039",
+        },
+      },
     },
     isDefault: true,
   },
@@ -84,6 +117,16 @@ const HF_MODELS: ModelEntry[] = [
       kind: "hf",
       repo: "Qwen/Qwen3-8B",
       revision: "b968826d9c46dd6066d109eabc6255188de91218",
+      files: {
+        tokenizer: {
+          etag: "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+          sha256: "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+        },
+        config: {
+          etag: "417d038a63fa3de29cfde265caedae14d1a58d92",
+          sha256: "d5d09f07b48c3086c508b30d1c9114bd1189145b74e982a265350c923acd8101",
+        },
+      },
     },
     isDefault: true,
   },
