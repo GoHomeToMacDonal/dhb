@@ -31,7 +31,11 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.85.1",
     "@earendil-works/pi-ai": "0.85.1",
+    "@huggingface/hub": "^2.17.11",
+    "@huggingface/jinja": "^0.5.13",
+    "@huggingface/tokenizers": "^0.2.0",
     "commander": "^15.0.0",
+    "gpt-tokenizer": "^4.1.2",
     "yaml": "^2.9.1"
   },
   "devDependencies": {

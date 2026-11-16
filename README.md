@@ -13,6 +13,8 @@ Requires **Node.js >= 24** and **pnpm 10.33.3**.
   passing.
 - `commit` — read the git staging area, run a DeepSeek agent to generate and make
   a single commit, then print the final commit message. _(in progress)_
+- `tokens [file]` — count how many tokens a text or a JSON chat conversation
+  costs under GPT-4o/5, DeepSeek V3/R1 and Qwen3 tokenizers.
 
 ## Development
 
@@ -67,6 +69,50 @@ refs:
 ```
 
 The key is read only from this file — there is no environment-variable fallback.
+
+## The `tokens` command
+
+`dhb tokens` counts tokens locally with pure-JavaScript tokenizers. It needs no
+Python and no API key.
+
+```bash
+dhb tokens notes.md                      # default models
+cat notes.md | dhb tokens -m gpt-5,qwen3 # stdin; comma-separated, repeatable -m
+dhb tokens --chat request.json --json    # chat mode, JSON output
+dhb tokens --list-models
+```
+
+| Models                                                      | Tokenizer                                                |
+| ----------------------------------------------------------- | -------------------------------------------------------- |
+| `gpt-4o`, `gpt-4o-mini`, `gpt-5`, `gpt-5-mini`, … `gpt-5.5` | `o200k_base` via `gpt-tokenizer`, bundled, works offline |
+| `deepseek-v3`, `deepseek-r1`, `qwen3`                       | `tokenizer.json` from the Hugging Face Hub               |
+
+Without `-m`, it counts `gpt-4o`, `gpt-5`, `deepseek-v3`, `deepseek-r1` and
+`qwen3`.
+
+**Text mode** (default) tokenizes the input as-is and adds no special tokens.
+
+**Chat mode** (`--chat`) requires JSON input: either an array of messages or an
+OpenAI-style object with a `messages` array. Each message needs a string `role`
+and a string `content`. The model's chat template is applied with the assistant
+generation prompt, so the count includes role markers and special tokens the way
+a request is billed. GPT models use ChatML framing; Hub models render their own
+`chat_template` from `tokenizer_config.json`.
+
+```json
+{
+  "messages": [
+    { "role": "system", "content": "Be brief." },
+    { "role": "user", "content": "Hi" }
+  ]
+}
+```
+
+Hub tokenizers are downloaded on first use into the standard Hugging Face cache
+(`$HF_HUB_CACHE`, else `$HF_HOME/hub`, else `~/.cache/huggingface/hub`) and
+reused offline afterwards. Revisions are pinned to commit hashes, so counts are
+reproducible. Set `HF_ENDPOINT` to use a mirror. Download notices go to stderr,
+so `--json` output on stdout stays clean.
 
 ## Scripts
 
